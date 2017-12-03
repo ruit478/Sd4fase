@@ -17,6 +17,10 @@ struct server_t {
   int port;
   int id; // id do socket
   struct sockaddr_in server_data;
+  char * hostname1;
+  int port1;
+  char* hostname2;
+  int port2;
 };
 
 /* Função que garante o envio de len bytes armazenados em buf,

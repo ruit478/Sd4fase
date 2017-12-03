@@ -164,6 +164,12 @@ struct message_t *network_send_receive(struct server_t *server,
 
   /* Verificar se o envio teve sucesso */
   if (result != _INT) { // Ver caso de erro
+    /*
+    server->hostname1 = server->hostname;
+    server->port1 = server->port;
+    server->hostname = server->hostname2;
+    server->port = server->port2;
+    */
     return NULL;
   }
   /* Enviar a mensagem que foi previamente serializada */

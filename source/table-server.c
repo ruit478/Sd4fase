@@ -140,33 +140,43 @@ int network_receive_send(int sockfd) {
 }
 
 int main(int argc, char **argv) {
-  int listening_socket, connsock;
+  int listening_socket, connsock, sockfd2; //fd do secundário
   struct sockaddr_in client;
   socklen_t size_client;
   int server_error = 0;
-
-  if (argc < 3) {
-    printf("Uso: ./server <porta TCP> <table1_size> [<table2_size> ...]\n");
-    printf("Exemplo de uso: ./table-server 54321 10 15 20 25\n");
+  int isPrimary; // 0 se primario, 1 para secundario
+  if (argc < 2) {
+    printf("Exemplo de uso: ./table-server 5000 127.0.0.1 5001 10 15 20 25\n");
     return -1;
   }
+  else if( argc > 4 ){ // Primario
+    isPrimary = 0;
+    int ts;
+    int index = 0;
+    if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
+      return -1;
+    if((sockfd2 = make_server_socket(atoi(argv[3]))) < 0)
+      return -1;
+    char **n_tables = (char **)malloc(sizeof(char *) * ((argc - 4) + 1));
+    for (ts = 4; ts < argc; ts++) {
+      n_tables[index] = strdup(argv[ts]);
+      index++;
+    }
+    n_tables[index] = NULL;
+    }
+  else{ // Sou secundário
+    isPrimary = 1;
+  }
+
+
   struct pollfd *poll_list = NULL;
   size_client = sizeof(struct sockaddr_in);
-  if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
-    return -1;
-
+  
   /*********************************************************/
   /* Criar as tabelas de acordo com linha de comandos dada */
   /*********************************************************/
   // Copiar do argc o nr de tabelas
-  char **n_tables = (char **)malloc(sizeof(char *) * ((argc - 2) + 1));
-  int ts;
-  int index = 0;
-  for (ts = 2; ts < argc; ts++) {
-    n_tables[index] = strdup(argv[ts]);
-    index++;
-  }
-  n_tables[index] = NULL;
+  
 
   if (table_skel_init(n_tables) == -1) {
     perror("Erro ao criar tabela");
