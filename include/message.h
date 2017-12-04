@@ -17,7 +17,7 @@
 #define OC_PUT 40
 #define OC_COLLS 50
 #define OC_NTABLES 60
-
+#define OC_TCREATE 70
 /* Define códigos para os possíveis conteúdos da mensagem */
 #define CT_RESULT 10
 #define CT_VALUE 20

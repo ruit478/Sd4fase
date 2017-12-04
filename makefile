@@ -70,7 +70,7 @@ $(BIN_DIR)/table-client:
 	gcc $(OBJ_DIR)/table-client.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/network_client.o $(OBJ_DIR)/message.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/table-client
 
 $(BIN_DIR)/table-server:
-	gcc $(OBJ_DIR)/table-server.o $(OBJ_DIR)/table_skel.o $(OBJ_DIR)/message.o $(OBJ_DIR)/data.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/network_client.o -o $(BIN_DIR)/table-server
+	gcc $(OBJ_DIR)/table-server.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/table_skel.o $(OBJ_DIR)/message.o $(OBJ_DIR)/data.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/network_client.o -o $(BIN_DIR)/table-server
 # CLEAR -------------------------------------------------------
 
 clean:

@@ -144,7 +144,21 @@ struct message_t *invoke(struct message_t *msg_in) {
     msg_resposta->c_type = CT_RESULT;
     msg_resposta->content.result = nrTabelas;
     msg_resposta->opcode = OC_NTABLES;
+    break;
+
+  case OC_TCREATE:
+    msg_resposta->table_num = msg_in->table_num;
+    msg_resposta->c_type = CT_KEYS;
+    msg_resposta->opcode = OC_TCREATE;
+    msg_resposta->content.keys = msg_in->content.keys;
+    if (table_skel_init(msg_resposta->content.keys) == -1) {
+    perror("Erro ao criar tabela");
+    return -1;
   }
+    break;
+  }
+
+
   return msg_resposta;
 }
   void table_skel_print_table(int nrT) {

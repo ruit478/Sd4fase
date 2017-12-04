@@ -18,7 +18,9 @@
 #include "message-private.h"
 #include "network_client-private.h"
 #include "table-private.h"
+#include "client_stub-private.h"
 #include "table_skel-private.h"
+
 #define MAX_C 4
 #define TIME -1
 /* Função para preparar uma socket de receção de pedidos de ligação.
@@ -144,45 +146,97 @@ int main(int argc, char **argv) {
   struct sockaddr_in client;
   socklen_t size_client;
   int server_error = 0;
-  int isPrimary; // 0 se primario, 1 para secundario
+  int isPrimary; // 1 se primario, 0 para secundario
+  int isSecondaryAlive = 0; //0 tá dead 1 alive
+  char **n_tables = (char **)malloc(sizeof(char *) * ((argc - 4) + 1));
+  int ts;
+  int index = 0;
   if (argc < 2) {
-    printf("Exemplo de uso: ./table-server 5000 127.0.0.1 5001 10 15 20 25\n");
+    printf("Exemplo de uso: Primario: ./table-server 5000 127.0.0.1 5001 10 15 20 25\n");
+    printf("Exemplo de uso: Secundario ./table-server 5001\n");
     return -1;
   }
-  else if( argc > 4 ){ // Primario
-    isPrimary = 0;
-    int ts;
-    int index = 0;
-    if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
+
+  if(argc > 4 ){ // Primario
+    isPrimary = 1;
+    size_client = sizeof(struct sockaddr_in);
+    if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0){
       return -1;
-    if((sockfd2 = make_server_socket(atoi(argv[3]))) < 0)
-      return -1;
-    char **n_tables = (char **)malloc(sizeof(char *) * ((argc - 4) + 1));
-    for (ts = 4; ts < argc; ts++) {
+    }
+
+    for (ts = 4; ts < argc; ts++){ 
       n_tables[index] = strdup(argv[ts]);
       index++;
     }
     n_tables[index] = NULL;
+
+    char * address = strdup(argv[2]);
+    strcat(address,":");
+    strcat(address,argv[3]);
+    struct rtables_t *rtable = rtables_bind(address);
+    int rc = 0;
+    int result = 0;
+    struct message_t *message =(struct message_t *)malloc(sizeof(struct message_t));
+    if (message == NULL)
+      return -1;
+    message->table_num = 0;
+    message->opcode = OC_TCREATE; //Fazer novo opcode??
+    message->c_type = CT_KEYS;
+    message->content.keys = n_tables;
+    struct message_t *msg_resposta = network_send_receive(rtable->server, message);
+    if (msg_resposta == NULL) {
+      rc = reconnect(rtable);
+
+      if (rc == -1) {
+        free_message(message);
+        free_message(msg_resposta);
+        return NULL;
+      } else
+        msg_resposta = network_send_receive(rtable->server, message);
     }
+
+    if (msg_resposta->opcode == OC_RT_ERROR) {
+      free_message(message);
+      free_message(msg_resposta);
+      return NULL;
+    }
+  }
+    
+
+    
   else{ // Sou secundário
-    isPrimary = 1;
+    printf("Sou secundario\n");
+    int result;
+    size_client = sizeof(struct sockaddr_in);
+    if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
+      return -1;
+
+    while ((connsock = accept(listening_socket, (struct sockaddr *) &client, &size_client)) != -1) {
+    printf(" Cliente ligou-se!\n");
+    while (1){
+
+      /* Fazer ciclo de pedido e resposta */
+      if((result = network_receive_send(connsock)) < 0){
+        close(connsock);
+        break;
+      }
+
+      /* Ciclo feito com sucesso ? Houve erro?
+         Cliente desligou? */
+
+      }
+    }
   }
 
+  struct pollfd *poll_list = NULL;  
 
-  struct pollfd *poll_list = NULL;
-  size_client = sizeof(struct sockaddr_in);
-  
-  /*********************************************************/
-  /* Criar as tabelas de acordo com linha de comandos dada */
-  /*********************************************************/
-  // Copiar do argc o nr de tabelas
-  
-
+  // É primario
   if (table_skel_init(n_tables) == -1) {
     perror("Erro ao criar tabela");
     close(listening_socket);
     return -1;
   }
+
   int totalConnections = MAX_C + 2;
 
   poll_list = (struct pollfd *)malloc(sizeof(struct pollfd) * totalConnections);
