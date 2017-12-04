@@ -138,7 +138,7 @@ int network_receive_send(int sockfd) {
   free(message_pedido);
   free(message_resposta);
   free_message(msg_pedido);
-  return 0;
+  return 1;
 }
 
 int main(int argc, char **argv) {
@@ -295,8 +295,8 @@ int main(int argc, char **argv) {
     // para cada socket cliente
     for (int k = 2; k < totalConnections; k++) {
       if (poll_list[k].revents & POLLIN) {
-        if(network_receive_send(poll_list[k].fd) != 0){;
-          printf("Cliente %d saiu!\n", k-1);
+        if(network_receive_send(poll_list[k].fd) == 0){
+          printf("\nCliente %d saiu!\n", k-1);
           close(poll_list[k].fd);
           poll_list[k].fd = -1;
         }
