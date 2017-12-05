@@ -7,7 +7,7 @@ SRC_DIR = source
 INC_DIR = include
 OBJ_DIR = object
 BIN_DIR = binary
-CFLAGS = -g -Wall -I $(INC_DIR)
+CFLAGS = -g -pthread -Wall -I $(INC_DIR)
 
 all: $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o $(OBJ_DIR)/message.o $(OBJ_DIR)/test_data.o $(OBJ_DIR)/test_entry.o $(OBJ_DIR)/test_table.o $(OBJ_DIR)/test_message.o $(OBJ_DIR)/network_client.o $(OBJ_DIR)/table-client.o $(OBJ_DIR)/table-server.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/table_skel.o $(BIN_DIR)/table-client $(BIN_DIR)/table-server $(BIN_DIR)/test_data $(BIN_DIR)/test_entry $(BIN_DIR)/test_table $(BIN_DIR)/test_message
 
@@ -55,22 +55,22 @@ $(OBJ_DIR)/table-server.o:$(INC_DIR)/inet.h $(INC_DIR)/network_client-private.h 
 # Compilar Testes ----------------------------------------------
 
 $(BIN_DIR)/test_data:
-	gcc $(OBJ_DIR)/test_data.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/test_data
+	$(CC) $(CFLAGS) $(OBJ_DIR)/test_data.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/test_data
 
 $(BIN_DIR)/test_entry:
-	gcc $(OBJ_DIR)/test_entry.o $(OBJ_DIR)/data.o $(OBJ_DIR)/entry.o -o $(BIN_DIR)/test_entry
+	$(CC) $(CFLAGS) $(OBJ_DIR)/test_entry.o $(OBJ_DIR)/data.o $(OBJ_DIR)/entry.o -o $(BIN_DIR)/test_entry
 
 $(BIN_DIR)/test_table:
-	gcc $(OBJ_DIR)/test_table.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/test_table
+	$(CC) $(CFLAGS) $(OBJ_DIR)/test_table.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/test_table
 
 $(BIN_DIR)/test_message:
-	gcc $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o $(OBJ_DIR)/test_message.o $(OBJ_DIR)/message.o -o $(BIN_DIR)/test_message
+	$(CC) $(CFLAGS) $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o $(OBJ_DIR)/test_message.o $(OBJ_DIR)/message.o -o $(BIN_DIR)/test_message
 
 $(BIN_DIR)/table-client:
-	gcc $(OBJ_DIR)/table-client.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/network_client.o $(OBJ_DIR)/message.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/table-client
+	$(CC) $(CFLAGS) $(OBJ_DIR)/table-client.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/network_client.o $(OBJ_DIR)/message.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/data.o -o $(BIN_DIR)/table-client
 
 $(BIN_DIR)/table-server:
-	gcc $(OBJ_DIR)/table-server.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/table_skel.o $(OBJ_DIR)/message.o $(OBJ_DIR)/data.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/network_client.o -o $(BIN_DIR)/table-server
+	$(CC) $(CFLAGS) $(OBJ_DIR)/table-server.o $(OBJ_DIR)/client_stub.o $(OBJ_DIR)/table_skel.o $(OBJ_DIR)/message.o $(OBJ_DIR)/data.o $(OBJ_DIR)/table.o $(OBJ_DIR)/entry.o $(OBJ_DIR)/network_client.o -o $(BIN_DIR)/table-server
 # CLEAR -------------------------------------------------------
 
 clean:

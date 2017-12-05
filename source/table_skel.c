@@ -153,7 +153,7 @@ struct message_t *invoke(struct message_t *msg_in) {
     msg_resposta->content.keys = msg_in->content.keys;
     if (table_skel_init(msg_resposta->content.keys) == -1) {
     perror("Erro ao criar tabela");
-    return -1;
+    return NULL;
   }
     break;
   }
