@@ -24,14 +24,28 @@
 
 #define MAX_C 4
 #define TIME -1
-
-pthread_mutex_t dados = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  dados_disponiveis = PTHREAD_COND_INITIALIZER;
+struct rtables_t *rtable;
+//pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 struct message_t *msg_pedido;
 int isPrimary;  // 1 se primario, 0 para secundario
 int number = 0;
 /* Função para preparar uma socket de receção de pedidos de ligação.
 */
+
+void *thread_main(void* params){
+  signal(SIGPIPE, SIG_IGN);
+  //struct server_t *server = network_connect((const char *) params);
+   //pthread_mutex_lock(&mutex1);
+    pthread_mutex_lock(&mutex2);
+    printf("Entrei na thread\n");
+
+    network_send_receive(rtable->server,msg_pedido);
+    print_message(msg_pedido);
+    /* Se já fiz o que tinha a fazer, liberto o mutex*/
+    pthread_mutex_unlock(&mutex2);
+    
+  }
 int make_server_socket(short port) {
   int socket_fd;
   struct sockaddr_in server;
@@ -104,22 +118,25 @@ int network_receive_send(int sockfd) {
     return -1;
   }
   /* Desserializar a mensagem do pedido */
-  pthread_mutex_lock(&dados);
   msg_pedido = buffer_to_message(message_pedido, msg_size_conv);
   print_message(msg_pedido);
   /* Verificar se a desserialização teve sucesso */
   if (msg_pedido == NULL)
     return -1;
   /* Processar a mensagem */
-    if(msg_pedido->opcode == OC_PUT || msg_pedido->opcode == OC_UPDATE){
-      if(number == 0){
-      number = 1;
-      pthread_cond_signal(&dados_disponiveis);
-      }
-  }
-  pthread_mutex_unlock(&dados);
+
   msg_resposta = invoke(msg_pedido);
+
+    if((msg_pedido->opcode == OC_PUT || msg_pedido->opcode == OC_UPDATE) && isPrimary == 1){  
+      pthread_t secThread;
+    if(pthread_create(&secThread, NULL, &thread_main, NULL) < 0)
+        printf("A thread n foi inicializada");
+    else
+        printf("A thread secundaria foi inicializada");
+    pthread_join(secThread, NULL);
+  }
   print_message(msg_resposta);
+
   /* Serializar a mensagem recebida */
   message_size = message_to_buffer(msg_resposta, &message_resposta); // Problema aqui, server manda a resposta
 
@@ -149,32 +166,12 @@ int network_receive_send(int sockfd) {
   /* Libertar memória */
   free(message_pedido);
   free(message_resposta);
-  if(isPrimary == 0)
+  if(isPrimary == 0){
     free_message(msg_pedido);
+  }
   return 1;
 }
 
-void *thread_main(void* params){
-  signal(SIGPIPE, SIG_IGN);
-  struct server_t *server = network_connect((const char *) params);
-
-  while (1){
-
-    pthread_mutex_lock(&dados);
-
-    /* Esperar por dados > 0 */
-    while (number == 0)
-      pthread_cond_wait(&dados_disponiveis, &dados);
-  
-    network_send_receive(server,msg_pedido); 
-    number = 0; /* Já processámos dados */
-
-    /* Se já fiz o que tinha a fazer, liberto o mutex*/
-    pthread_mutex_unlock(&dados);
-    if(msg_pedido == NULL) break;
-    }
-    pthread_exit(NULL);
-  }
 
 int main(int argc, char **argv) {
   int listening_socket, connsock; //fd do secundário
@@ -193,11 +190,7 @@ int main(int argc, char **argv) {
 
   if(argc > 4 ){ // Primario
     isPrimary = 1;
-    pthread_t secThread;
-    if(pthread_create(&secThread, NULL, thread_main, (void *) argv[2]) < 0)
-        printf("A thread n foi inicializada");
-    else
-        printf("A thread secundaria foi inicializada");
+    //pthread_mutex_lock(&mutex2);
     /*
     if(pthread_join(secThread,NULL) < 0)
        printf("A thread n foi joined");
@@ -215,7 +208,7 @@ int main(int argc, char **argv) {
     }
     n_tables[index] = NULL;
 
-    struct rtables_t *rtable = rtables_bind(argv[2]);
+    rtable = rtables_bind(argv[2]);
     int rc = 0;
     struct message_t *message =(struct message_t *)malloc(sizeof(struct message_t));
     if (message == NULL)
@@ -240,6 +233,11 @@ int main(int argc, char **argv) {
       free_message(msg_resposta);
       return -1;
     }
+    if (table_skel_init(n_tables) == -1) {
+    perror("Erro ao criar tabela");
+    close(listening_socket);
+    return -1;
+  }
   }
     
 
@@ -250,33 +248,11 @@ int main(int argc, char **argv) {
     size_client = sizeof(struct sockaddr_in);
     if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
       return -1;
-
-    while ((connsock = accept(listening_socket, (struct sockaddr *) &client, &size_client)) != -1) {
-      printf(" Cliente ligou-se!\n");
-      while (1){
-
-      /* Fazer ciclo de pedido e resposta */
-      if((result = network_receive_send(connsock)) != 1){
-        printf("Result %d", result);
-        close(connsock);
-        break;
-      }
-
-      /* Ciclo feito com sucesso ? Houve erro?
-         Cliente desligou? */
-
-      }
-    }
   }
 
   struct pollfd *poll_list = NULL;  
 
   // É primario
-  if (table_skel_init(n_tables) == -1) {
-    perror("Erro ao criar tabela");
-    close(listening_socket);
-    return -1;
-  }
 
   int totalConnections = MAX_C + 2;
 
