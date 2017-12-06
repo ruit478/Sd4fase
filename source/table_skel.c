@@ -155,6 +155,7 @@ struct message_t *invoke(struct message_t *msg_in) {
     perror("Erro ao criar tabela");
     return NULL;
   }
+    msg_resposta->opcode = OC_TCREATE + 1;
     break;
   }
 

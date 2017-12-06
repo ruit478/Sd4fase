@@ -112,17 +112,16 @@ int network_receive_send(int sockfd) {
     return -1;
   /* Processar a mensagem */
     if(msg_pedido->opcode == OC_PUT || msg_pedido->opcode == OC_UPDATE){
-    number = 1;
-    pthread_cond_signal(&dados_disponiveis);
-    }
-
+      if(number == 0){
+      number = 1;
+      pthread_cond_signal(&dados_disponiveis);
+      }
+  }
+  pthread_mutex_unlock(&dados);
   msg_resposta = invoke(msg_pedido);
-  
   print_message(msg_resposta);
   /* Serializar a mensagem recebida */
   message_size = message_to_buffer(msg_resposta, &message_resposta); // Problema aqui, server manda a resposta
-
-  pthread_mutex_unlock(&dados);
 
   /* Verificar se a serialização teve sucesso */
   if (message_size == -1) {
@@ -156,6 +155,7 @@ int network_receive_send(int sockfd) {
 }
 
 void *thread_main(void* params){
+  signal(SIGPIPE, SIG_IGN);
   struct server_t *server = network_connect((const char *) params);
 
   while (1){
@@ -166,13 +166,14 @@ void *thread_main(void* params){
     while (number == 0)
       pthread_cond_wait(&dados_disponiveis, &dados);
   
-    network_send_receive(server,msg_pedido);
+    network_send_receive(server,msg_pedido); 
     number = 0; /* Já processámos dados */
 
     /* Se já fiz o que tinha a fazer, liberto o mutex*/
     pthread_mutex_unlock(&dados);
+    if(msg_pedido == NULL) break;
     }
-  
+    pthread_exit(NULL);
   }
 
 int main(int argc, char **argv) {
@@ -197,7 +198,12 @@ int main(int argc, char **argv) {
         printf("A thread n foi inicializada");
     else
         printf("A thread secundaria foi inicializada");
-
+    /*
+    if(pthread_join(secThread,NULL) < 0)
+       printf("A thread n foi joined");
+    else
+        printf("A thread foi joined");
+        */
     size_client = sizeof(struct sockaddr_in);
     if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0){
       return -1;
@@ -240,17 +246,18 @@ int main(int argc, char **argv) {
     
   else{ // Sou secundário
     printf("Sou secundario\n");
-    int result;
+    int result, connsock;
     size_client = sizeof(struct sockaddr_in);
     if ((listening_socket = make_server_socket(atoi(argv[1]))) < 0)
       return -1;
 
     while ((connsock = accept(listening_socket, (struct sockaddr *) &client, &size_client)) != -1) {
       printf(" Cliente ligou-se!\n");
-    while (1){
+      while (1){
 
       /* Fazer ciclo de pedido e resposta */
-      if((result = network_receive_send(connsock)) < 0){
+      if((result = network_receive_send(connsock)) != 1){
+        printf("Result %d", result);
         close(connsock);
         break;
       }
